@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Virtual Try-On - AI-powered clothing fitting app for your fashion business" />
+  <meta name="theme-color" content="#0f0f1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>FastFit — Virtual Try-On</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <!-- Main app shell -->
+  <div id="app">
+    <!-- Header -->
+    <header id="app-header">
+      <div class="header-inner">
+        <div class="logo">
+          <span class="logo-icon material-icons-round">checkroom</span>
+          <span class="logo-text">FastFit</span>
+        </div>
+        <div id="header-user" class="header-user hidden">
+          <img id="header-avatar" class="header-avatar" src="" alt="avatar" />
+        </div>
+      </div>
+    </header>
+
+    <!-- Tab Content Area -->
+    <main id="main-content">
+      <!-- ═══════════ TAB 1: Person Images ═══════════ -->
+      <section id="tab-persons" class="tab-panel active">
+        <div class="section-header">
+          <h1 class="section-title">Person Images</h1>
+          <p class="section-subtitle">Add photos of people to try on clothes</p>
+        </div>
+        <div class="add-buttons">
+          <button id="btn-person-gallery" class="btn-add" title="Add from Gallery">
+            <span class="material-icons-round">photo_library</span>
+            <span>Gallery</span>
+          </button>
+          <button id="btn-person-camera" class="btn-add" title="Take Photo">
+            <span class="material-icons-round">photo_camera</span>
+            <span>Camera</span>
+          </button>
+        </div>
+        <input type="file" id="input-person-gallery" accept="image/*" class="hidden-input" />
+        <input type="file" id="input-person-camera" accept="image/*" capture="user" class="hidden-input" />
+        <div id="person-gallery" class="image-gallery">
+          <!-- Images will be rendered here -->
+        </div>
+        <div id="person-empty" class="empty-state">
+          <span class="material-icons-round empty-icon">person_add</span>
+          <p>No person images yet</p>
+          <p class="empty-hint">Tap the buttons above to add photos</p>
+        </div>
+      </section>
+
+      <!-- ═══════════ TAB 2: Item Images ═══════════ -->
+      <section id="tab-items" class="tab-panel">
+        <div class="section-header">
+          <h1 class="section-title">Fashion Items</h1>
+          <p class="section-subtitle">Clothes, shoes, bags and accessories</p>
+        </div>
+        <div class="add-buttons">
+          <button id="btn-item-gallery" class="btn-add" title="Add from Gallery">
+            <span class="material-icons-round">photo_library</span>
+            <span>Gallery</span>
+          </button>
+          <button id="btn-item-camera" class="btn-add" title="Take Photo">
+            <span class="material-icons-round">photo_camera</span>
+            <span>Camera</span>
+          </button>
+        </div>
+        <input type="file" id="input-item-gallery" accept="image/*" class="hidden-input" />
+        <input type="file" id="input-item-camera" accept="image/*" capture="environment" class="hidden-input" />
+        <div id="item-gallery" class="image-gallery">
+          <!-- Items will be rendered here -->
+        </div>
+        <div id="item-empty" class="empty-state">
+          <span class="material-icons-round empty-icon">checkroom</span>
+          <p>No items yet</p>
+          <p class="empty-hint">Tap the buttons above to add items</p>
+        </div>
+      </section>
+
+      <!-- ═══════════ TAB 3: Account ═══════════ -->
+      <section id="tab-account" class="tab-panel">
+        <!-- Logged out state -->
+        <div id="account-logged-out" class="account-container">
+          <div class="login-card">
+            <div class="login-illustration">
+              <span class="material-icons-round login-icon">storefront</span>
+            </div>
+            <h1 class="login-title">Welcome to FastFit</h1>
+            <p class="login-subtitle">Sign in to sync your images and manage your shop</p>
+            <button id="btn-google-login" class="btn-google">
+              <svg class="google-logo" viewBox="0 0 24 24" width="20" height="20">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Logged in state -->
+        <div id="account-logged-in" class="account-container hidden">
+          <div class="profile-header-card">
+            <img id="profile-avatar" class="profile-avatar" src="" alt="avatar" />
+            <h2 id="profile-name" class="profile-name"></h2>
+            <p id="profile-email" class="profile-email"></p>
+          </div>
+
+          <div class="profile-form-card">
+            <h3 class="form-card-title">
+              <span class="material-icons-round">store</span>
+              Shop Details
+            </h3>
+            <div class="form-group">
+              <label for="input-shop-name">Shop Name</label>
+              <input type="text" id="input-shop-name" placeholder="Enter your shop name" />
+            </div>
+            <div class="form-group">
+              <label for="input-address">Address</label>
+              <textarea id="input-address" placeholder="Enter your shop address" rows="3"></textarea>
+            </div>
+            <button id="btn-save-profile" class="btn-save">
+              <span class="material-icons-round">save</span>
+              Save Changes
+            </button>
+          </div>
+
+          <button id="btn-logout" class="btn-logout">
+            <span class="material-icons-round">logout</span>
+            Sign Out
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Tab Bar -->
+    <nav id="tab-bar">
+      <button class="tab-btn active" data-tab="persons" id="tab-btn-persons">
+        <span class="material-icons-round tab-icon">people</span>
+        <span class="tab-label">Persons</span>
+        <span class="tab-indicator"></span>
+      </button>
+      <button class="tab-btn" data-tab="items" id="tab-btn-items">
+        <span class="material-icons-round tab-icon">checkroom</span>
+        <span class="tab-label">Items</span>
+        <span class="tab-indicator"></span>
+      </button>
+      <button class="tab-btn" data-tab="account" id="tab-btn-account">
+        <span class="material-icons-round tab-icon">person</span>
+        <span class="tab-label">Account</span>
+        <span class="tab-indicator"></span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
