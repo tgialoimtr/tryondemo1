@@ -14,6 +14,83 @@ import {
 } from './supabase.js';
 
 // ══════════════════════════════════════════════════════════════
+// Image Compression
+// ══════════════════════════════════════════════════════════════
+/**
+ * Compress an image File using a canvas.
+ * Camera shots are typically 3–8 MB; this reduces them to ~200–400 KB.
+ * @param {File} file - Original image file
+ * @param {number} maxPx - Max width/height in pixels (default 1200)
+ * @param {number} quality - JPEG quality 0–1 (default 0.85)
+ * @returns {Promise<File>} Compressed file (or original if already small)
+ */
+async function compressImage(file, maxPx = 1200, quality = 0.8) {
+  if (!file || !file.type || !file.type.startsWith('image/')) return file;
+
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+
+      if (width <= maxPx && height <= maxPx) {
+        resolve(file);
+        return;
+      }
+
+      let targetWidth = width;
+      let targetHeight = height;
+
+      if (width > height) {
+        targetHeight = Math.round((height / width) * maxPx);
+        targetWidth = maxPx;
+      } else {
+        targetWidth = Math.round((width / height) * maxPx);
+        targetHeight = maxPx;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Canvas toBlob failed'));
+            return;
+          }
+
+          const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+
+          resolve(compressed);
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image for compression'));
+    };
+
+    img.src = url;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
 // State
 // ══════════════════════════════════════════════════════════════
 let currentUser = null;
@@ -268,7 +345,8 @@ async function handlePersonFileSelected(file) {
 
   try {
     showLoading();
-    const data = await addPersonImage(currentUser.id, file);
+    const compressed = await compressImage(file);
+    const data = await addPersonImage(currentUser.id, compressed);
     personImages.unshift(data);
     renderPersonGallery();
     showToast('Person image added!', 'success');
@@ -387,7 +465,8 @@ async function handleItemFileSelected(file) {
 
   try {
     showLoading();
-    const data = await addItemImage(currentUser.id, file);
+    const compressed = await compressImage(file);
+    const data = await addItemImage(currentUser.id, compressed);
     itemImages.unshift(data);
     renderItemGallery();
     showToast('Item added!', 'success');
