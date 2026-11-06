@@ -788,6 +788,22 @@ function bindTryOnDropZones() {
   });
 }
 
+async function toBase64ImageString(imageUrl) {
+  const response = await fetch(imageUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image for rendering: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result).replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, ''));
+    reader.onerror = () => reject(new Error('Failed to read image as base64'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function renderTryOnWithGemini() {
   if (!selectedPerson || selectedItems.length === 0) {
     showToast('Choose a person and at least one item before rendering', 'warning');
@@ -798,7 +814,7 @@ async function renderTryOnWithGemini() {
   tryOnResultUrl = '';
   renderTryOnStage();
 
-  const prompt = `Create a realistic virtual try-on result. Use the person from the reference image as the base. Dress them with these clothing and accessory items: ${selectedItems.map((item) => item.id || 'item').join(', ')}. Keep the outfit natural, fit the body shape, preserve the person's face and pose, maintain consistent lighting, and output a polished product-shot style result.`;
+  const prompt = `Create a realistic virtual try-on result using this person as the base. Dress the person with ${selectedItems.length} selected item(s): ${selectedItems.map((item) => `item ${item.id || 'reference'}`).join(', ')}. Keep the person's face, body shape, lighting, and pose natural. Place the outfit cleanly and realistically on the body. Make it look like a polished product-shot preview.`;
 
   try {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -807,31 +823,43 @@ async function renderTryOnWithGemini() {
       tryOnResultUrl = selectedPerson.image_url;
       showToast('Gemini API key not configured. Demo preview loaded instead.', 'info');
     } else {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              role: 'user',
-              parts: [{
-                text: prompt,
-              }],
-            }],
-            generationConfig: {
-              responseModalities: ['TEXT', 'IMAGE'],
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-image:generateContent?key=${apiKey}`;
+      const body = {
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: await toBase64ImageString(selectedPerson.image_url),
+              },
             },
-          }),
-        }
-      );
+          ],
+        }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      };
+
+      console.log('[GEMINI DEBUG] request endpoint:', endpoint);
+      console.log('[GEMINI DEBUG] request payload:', JSON.stringify(body, null, 2));
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const rawText = await response.text();
+      console.log('[GEMINI DEBUG] raw response status:', response.status);
+      console.log('[GEMINI DEBUG] raw response body:', rawText);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to render via Gemini');
+        throw new Error(rawText || 'Failed to render via Gemini');
       }
 
-      const payload = await response.json();
+      const payload = JSON.parse(rawText);
       const imagePart = payload?.candidates?.[0]?.content?.parts?.find((part) => part.inlineData?.data);
       if (imagePart?.inlineData?.data) {
         tryOnResultUrl = `data:image/png;base64,${imagePart.inlineData.data}`;
