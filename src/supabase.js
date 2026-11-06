@@ -137,6 +137,36 @@ export async function deleteItemImage(id, storagePath) {
   if (error) throw error;
 }
 
+// ── Try Ons ─────────────────────────────────────────────
+export async function addTryOn(userId, payload) {
+  const { data, error } = await supabase
+    .from('try_ons')
+    .insert({
+      user_id: userId,
+      person_image_id: payload.person_image_id || null,
+      person_image_url: payload.person_image_url || '',
+      item_ids: payload.item_ids || [],
+      item_images: payload.item_images || [],
+      result_image_url: payload.result_image_url || '',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getTryOns(userId) {
+  const { data, error } = await supabase
+    .from('try_ons')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
 // ── Profile ───────────────────────────────────────────
 export async function getProfile(userId) {
   const { data, error } = await supabase

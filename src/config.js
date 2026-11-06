@@ -5,7 +5,7 @@
 
 export const SUPABASE_URL = 'https://zeapydopjeitakvrggws.supabase.co';       // e.g., 'https://xxxxx.supabase.co'
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplYXB5ZG9wamVpdGFrdnJnZ3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNTA5NTgsImV4cCI6MjA3NTcyNjk1OH0.HbWJR1ANCGsK4-R310xFKs2f5KhHVKT52panHXjSgkk'; // e.g., 'eyJhbGciOi...'
-
+export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 // Google OAuth is configured in Supabase Dashboard:
 // Authentication > Providers > Google

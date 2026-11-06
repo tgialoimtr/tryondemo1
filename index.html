@@ -91,7 +91,48 @@
         </div>
       </section>
 
-      <!-- ═══════════ TAB 3: Account ═══════════ -->
+      <!-- ═══════════ TAB 3: Try On ═══════════ -->
+      <section id="tab-tryon" class="tab-panel">
+        <div class="section-header">
+          <h1 class="section-title">Try On</h1>
+          <p class="section-subtitle">Pick a person and dress them with your items</p>
+        </div>
+
+        <div class="tryon-viewport">
+          <div class="tryon-slider-wrap tryon-person-wrap">
+            <div class="tryon-slider-label">Person</div>
+            <div id="tryon-person-strip" class="tryon-slider tryon-person-strip"></div>
+          </div>
+
+          <div class="tryon-stage-panel">
+            <div class="tryon-stage-left">
+              <div id="tryon-person-stage" class="tryon-stage-card empty-stage">
+                <span class="material-icons-round">person</span>
+                <p>Select a person</p>
+              </div>
+            </div>
+            <div class="tryon-stage-right">
+              <div id="tryon-selected-items" class="tryon-selection-card empty-stage">
+                <span class="material-icons-round">checkroom</span>
+                <p>Drag items here</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="tryon-slider-wrap tryon-item-wrap">
+            <div class="tryon-slider-label">Items</div>
+            <div id="tryon-item-strip" class="tryon-slider tryon-item-strip"></div>
+          </div>
+        </div>
+
+        <button id="btn-render-tryon" class="btn-render-tryon" type="button">
+          <span class="material-icons-round">auto_awesome</span>
+          <span>Render</span>
+        </button>
+        <div id="tryon-status" class="tryon-status">Choose a person and at least one item</div>
+      </section>
+
+      <!-- ═══════════ TAB 4: Account ═══════════ -->
       <section id="tab-account" class="tab-panel">
         <!-- Logged out state -->
         <div id="account-logged-out" class="account-container">
@@ -158,6 +199,11 @@
       <button class="tab-btn" data-tab="items" id="tab-btn-items">
         <span class="material-icons-round tab-icon">checkroom</span>
         <span class="tab-label">Items</span>
+        <span class="tab-indicator"></span>
+      </button>
+      <button class="tab-btn" data-tab="tryon" id="tab-btn-tryon">
+        <span class="material-icons-round tab-icon">checkroom</span>
+        <span class="tab-label">Try On</span>
         <span class="tab-indicator"></span>
       </button>
       <button class="tab-btn" data-tab="account" id="tab-btn-account">

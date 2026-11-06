@@ -382,6 +382,217 @@ html, body {
   opacity: 0.6;
 }
 
+/* ── Try On UI ──────────────────────────────────────────────── */
+.tryon-viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tryon-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tryon-slider-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.tryon-slider {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tryon-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.tryon-thumb,
+.tryon-item-card {
+  position: relative;
+  flex: 0 0 82px;
+  width: 82px;
+  height: 110px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tryon-thumb.selected,
+.tryon-item-card:active {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.tryon-thumb img,
+.tryon-item-card img,
+.tryon-stage-card img,
+.tryon-selected-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tryon-item-card {
+  height: 82px;
+  flex-basis: 82px;
+}
+
+.tryon-stage-panel {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 12px;
+  min-height: 260px;
+}
+
+.tryon-stage-card,
+.tryon-selection-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  border-radius: 20px;
+  border: 1px solid var(--surface-glass-border);
+  background: linear-gradient(180deg, rgba(26,26,46,0.9), rgba(18,18,31,0.95));
+  overflow: hidden;
+}
+
+.empty-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+
+.empty-stage .material-icons-round {
+  font-size: 34px;
+  opacity: 0.6;
+}
+
+.tryon-person-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tryon-selection-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  align-content: start;
+}
+
+.tryon-selection-card.empty-stage {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+
+.tryon-selected-item {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--surface-glass-border);
+}
+
+.tryon-remove-item {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(10, 10, 20, 0.8);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tryon-remove-item .material-icons-round {
+  font-size: 14px;
+}
+
+.btn-render-tryon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 16px;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: var(--shadow-glow);
+  cursor: pointer;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-render-tryon.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-render-tryon:active {
+  transform: scale(0.98);
+}
+
+.tryon-status {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tryon-rendering {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 20, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.spinner.small {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+}
+
 /* ── Account Section ────────────────────────────────────────── */
 .account-container {
   display: flex;

@@ -31,12 +31,25 @@ CREATE TABLE IF NOT EXISTS item_images (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Enable Row Level Security (RLS)
+-- 4. Create try_ons table
+CREATE TABLE IF NOT EXISTS try_ons (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  person_image_id UUID,
+  person_image_url TEXT NOT NULL,
+  item_ids UUID[] DEFAULT '{}',
+  item_images JSONB DEFAULT '[]'::jsonb,
+  result_image_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 5. Enable Row Level Security (RLS)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE person_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE item_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE try_ons ENABLE ROW LEVEL SECURITY;
 
--- 5. RLS Policies — Users can only access their own data
+-- 6. RLS Policies — Users can only access their own data
 -- Profiles
 CREATE POLICY "Users can view own profile" ON profiles
   FOR SELECT USING (auth.uid() = user_id);
@@ -44,6 +57,14 @@ CREATE POLICY "Users can insert own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE USING (auth.uid() = user_id);
+
+-- Try Ons
+CREATE POLICY "Users can view own try ons" ON try_ons
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own try ons" ON try_ons
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own try ons" ON try_ons
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- Person Images
 CREATE POLICY "Users can view own person images" ON person_images
@@ -61,7 +82,7 @@ CREATE POLICY "Users can insert own item images" ON item_images
 CREATE POLICY "Users can delete own item images" ON item_images
   FOR DELETE USING (auth.uid() = user_id);
 
--- 6. Updated_at trigger for profiles
+-- 7. Updated_at trigger for profiles
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

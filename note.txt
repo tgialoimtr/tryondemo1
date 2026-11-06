@@ -1,0 +1,26 @@
+you see 3 tab person, items, account ? now make the 4th tab Try On. this page is for trying items on a person. a set of selected items matched into a person is called a try. each person image will have multiple try. each try with its selected items will be stored in supabase database for retrieved later. this page has these sections:
+1. 
+
+
+
+
+
+
+free 3 try/hour, notify people to re try 
+10k for 10 try 
+200k for 500 try (discount 60%)
+
+chat inline for support and payment 
+
+
+
+
+
+
+
+
+gd1: cho shop xai
+
+gd2: cho ng dung xai 
+
+kho khan: ng dung k biet hinh ra co giong that khong 

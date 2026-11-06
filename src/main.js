@@ -9,6 +9,7 @@ import {
   addItemImage,
   getItemImages,
   deleteItemImage,
+  addTryOn,
   getProfile,
   upsertProfile,
 } from './supabase.js';
@@ -96,6 +97,12 @@ async function compressImage(file, maxPx = 1200, quality = 0.8) {
 let currentUser = null;
 let personImages = [];
 let itemImages = [];
+let selectedPerson = null;
+let selectedItems = [];
+let tryOnResultUrl = '';
+let isRenderingTryOn = false;
+let draggedTryItemId = null;
+let draggedTrySource = null;
 
 // Default sample images (shown when no user is logged in, or first load)
 const SAMPLE_PERSONS = [
@@ -131,6 +138,14 @@ const els = {
   inputItemCamera: $('#input-item-camera'),
   itemGallery: $('#item-gallery'),
   itemEmpty: $('#item-empty'),
+
+  // Try On section
+  tryonPersonStrip: $('#tryon-person-strip'),
+  tryonItemStrip: $('#tryon-item-strip'),
+  tryonPersonStage: $('#tryon-person-stage'),
+  tryonSelectedItems: $('#tryon-selected-items'),
+  tryonRenderBtn: $('#btn-render-tryon'),
+  tryonStatus: $('#tryon-status'),
 
   // Account section
   accountLoggedOut: $('#account-logged-out'),
@@ -545,12 +560,315 @@ async function loadUserData(user) {
 
     personImages = persons;
     itemImages = items;
+    selectedPerson = null;
+    selectedItems = [];
+    tryOnResultUrl = '';
+    isRenderingTryOn = false;
     renderPersonGallery();
     renderItemGallery();
+    renderTryOnSliders();
+    renderTryOnStage();
   } catch (err) {
     console.error('Load user data error:', err);
     showToast('Failed to load your data', 'error');
   }
+}
+
+function getTryOnPersons() {
+  return personImages.length > 0 ? personImages : SAMPLE_PERSONS;
+}
+
+function getTryOnItems() {
+  return itemImages.length > 0 ? itemImages : SAMPLE_ITEMS;
+}
+
+function renderTryOnSliders() {
+  const persons = getTryOnPersons();
+  const items = getTryOnItems();
+
+  els.tryonPersonStrip.innerHTML = persons
+    .map(
+      (person) => `
+        <button
+          class="tryon-thumb ${selectedPerson && selectedPerson.id === person.id ? 'selected' : ''}"
+          type="button"
+          data-person-id="${person.id}"
+          aria-label="Select person"
+        >
+          <img src="${person.image_url}" alt="Person preview" loading="lazy" />
+        </button>
+      `
+    )
+    .join('');
+
+  els.tryonItemStrip.innerHTML = items
+    .map(
+      (item) => `
+        <button
+          class="tryon-item-card"
+          type="button"
+          data-item-id="${item.id}"
+          draggable="true"
+          aria-label="Add item"
+        >
+          <img src="${item.image_url}" alt="Item preview" loading="lazy" />
+        </button>
+      `
+    )
+    .join('');
+
+  els.tryonPersonStrip.querySelectorAll('.tryon-thumb').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const person = persons.find((img) => String(img.id) === String(btn.dataset.personId));
+      if (!person) return;
+      selectedPerson = person;
+      tryOnResultUrl = '';
+      renderTryOnStage();
+      renderTryOnSliders();
+    });
+  });
+
+  els.tryonItemStrip.querySelectorAll('.tryon-item-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const item = items.find((img) => String(img.id) === String(card.dataset.itemId));
+      if (!item) return;
+      addItemToSelection(item);
+    });
+
+    card.addEventListener('dragstart', (event) => {
+      draggedTryItemId = card.dataset.itemId;
+      draggedTrySource = 'bottom';
+      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setData('text/plain', card.dataset.itemId);
+    });
+
+    card.addEventListener('dragend', () => {
+      draggedTryItemId = null;
+      draggedTrySource = null;
+    });
+  });
+}
+
+function renderTryOnStage() {
+  if (selectedPerson) {
+    const personResultUrl = tryOnResultUrl || selectedPerson.image_url;
+    els.tryonPersonStage.classList.remove('empty-stage');
+    els.tryonPersonStage.innerHTML = `
+      <img src="${personResultUrl}" alt="Selected person" />
+      ${isRenderingTryOn ? '<div class="tryon-rendering"><span class="spinner small"></span></div>' : ''}
+    `;
+  } else {
+    els.tryonPersonStage.classList.add('empty-stage');
+    els.tryonPersonStage.innerHTML = `
+      <span class="material-icons-round">person</span>
+      <p>Select a person</p>
+    `;
+  }
+
+  if (selectedItems.length === 0) {
+    els.tryonSelectedItems.classList.add('empty-stage');
+    els.tryonSelectedItems.innerHTML = `
+      <span class="material-icons-round">checkroom</span>
+      <p>Drag items here</p>
+    `;
+  } else {
+    els.tryonSelectedItems.classList.remove('empty-stage');
+    els.tryonSelectedItems.innerHTML = selectedItems
+      .map(
+        (item) => `
+          <div class="tryon-selected-item" draggable="true" data-item-id="${item.id}">
+            <img src="${item.image_url}" alt="Selected item" />
+            <button type="button" class="tryon-remove-item" data-item-id="${item.id}" aria-label="Remove item">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+        `
+      )
+      .join('');
+
+    els.tryonSelectedItems.querySelectorAll('.tryon-remove-item').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        removeItemFromSelection(button.dataset.itemId);
+      });
+    });
+
+    els.tryonSelectedItems.querySelectorAll('.tryon-selected-item').forEach((tile) => {
+      tile.addEventListener('dragstart', (event) => {
+        draggedTryItemId = tile.dataset.itemId;
+        draggedTrySource = 'selected';
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', tile.dataset.itemId);
+      });
+
+      tile.addEventListener('dragend', () => {
+        draggedTryItemId = null;
+        draggedTrySource = null;
+      });
+    });
+  }
+
+  const canRender = Boolean(selectedPerson) && selectedItems.length > 0 && !isRenderingTryOn;
+  els.tryonRenderBtn.disabled = !canRender;
+  els.tryonRenderBtn.classList.toggle('disabled', !canRender);
+  els.tryonRenderBtn.innerHTML = `
+    <span class="material-icons-round">${isRenderingTryOn ? 'hourglass_top' : 'auto_awesome'}</span>
+    <span>${isRenderingTryOn ? 'Rendering...' : 'Render'}</span>
+  `;
+
+  if (!selectedPerson || selectedItems.length === 0) {
+    els.tryonStatus.textContent = 'Choose a person and at least one item';
+    return;
+  }
+
+  if (isRenderingTryOn) {
+    els.tryonStatus.textContent = 'Creating your try-on preview...';
+    return;
+  }
+
+  els.tryonStatus.textContent = `${selectedItems.length} item${selectedItems.length > 1 ? 's' : ''} ready to render`;
+}
+
+function addItemToSelection(item) {
+  if (!item) return;
+  const exists = selectedItems.some((selectedItem) => String(selectedItem.id) === String(item.id));
+  if (exists) return;
+
+  selectedItems.push(item);
+  tryOnResultUrl = '';
+  renderTryOnStage();
+  renderTryOnSliders();
+}
+
+function removeItemFromSelection(itemId) {
+  selectedItems = selectedItems.filter((item) => String(item.id) !== String(itemId));
+  tryOnResultUrl = '';
+  renderTryOnStage();
+  renderTryOnSliders();
+}
+
+function bindTryOnDropZones() {
+  const addToSelectionFromDrop = (event) => {
+    event.preventDefault();
+    const itemId = event.dataTransfer.getData('text/plain') || draggedTryItemId;
+    if (!itemId) return;
+
+    const list = [...getTryOnItems()];
+    const draggedItem = list.find((item) => String(item.id) === String(itemId));
+
+    if (draggedItem) {
+      if (draggedTrySource === 'selected') {
+        removeItemFromSelection(itemId);
+      } else {
+        addItemToSelection(draggedItem);
+      }
+    }
+
+    draggedTryItemId = null;
+    draggedTrySource = null;
+  };
+
+  els.tryonSelectedItems.addEventListener('dragover', (event) => {
+    event.preventDefault();
+  });
+
+  els.tryonSelectedItems.addEventListener('drop', addToSelectionFromDrop);
+
+  els.tryonItemStrip.addEventListener('dragover', (event) => {
+    event.preventDefault();
+  });
+
+  els.tryonItemStrip.addEventListener('drop', (event) => {
+    event.preventDefault();
+    if (draggedTrySource !== 'selected') return;
+    const itemId = event.dataTransfer.getData('text/plain') || draggedTryItemId;
+    if (itemId) removeItemFromSelection(itemId);
+    draggedTryItemId = null;
+    draggedTrySource = null;
+  });
+}
+
+async function renderTryOnWithGemini() {
+  if (!selectedPerson || selectedItems.length === 0) {
+    showToast('Choose a person and at least one item before rendering', 'warning');
+    return;
+  }
+
+  isRenderingTryOn = true;
+  tryOnResultUrl = '';
+  renderTryOnStage();
+
+  const prompt = `Create a realistic virtual try-on result. Use the person from the reference image as the base. Dress them with these clothing and accessory items: ${selectedItems.map((item) => item.id || 'item').join(', ')}. Keep the outfit natural, fit the body shape, preserve the person's face and pose, maintain consistent lighting, and output a polished product-shot style result.`;
+
+  try {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    if (!apiKey) {
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      tryOnResultUrl = selectedPerson.image_url;
+      showToast('Gemini API key not configured. Demo preview loaded instead.', 'info');
+    } else {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              role: 'user',
+              parts: [{
+                text: prompt,
+              }],
+            }],
+            generationConfig: {
+              responseModalities: ['TEXT', 'IMAGE'],
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to render via Gemini');
+      }
+
+      const payload = await response.json();
+      const imagePart = payload?.candidates?.[0]?.content?.parts?.find((part) => part.inlineData?.data);
+      if (imagePart?.inlineData?.data) {
+        tryOnResultUrl = `data:image/png;base64,${imagePart.inlineData.data}`;
+      } else {
+        tryOnResultUrl = selectedPerson.image_url;
+      }
+
+      if (currentUser) {
+        await addTryOn(currentUser.id, {
+          person_image_id: selectedPerson.id,
+          person_image_url: selectedPerson.image_url,
+          item_ids: selectedItems.map((item) => item.id),
+          item_images: selectedItems.map((item) => ({ id: item.id, image_url: item.image_url })),
+          result_image_url: tryOnResultUrl,
+        });
+      }
+    }
+
+    showToast('Try-on preview ready', 'success');
+  } catch (err) {
+    console.error('Try-on render error:', err);
+    tryOnResultUrl = selectedPerson.image_url;
+    showToast('Render failed. Using the original preview instead.', 'error');
+  } finally {
+    isRenderingTryOn = false;
+    renderTryOnStage();
+  }
+}
+
+function initTryOnSection() {
+  renderTryOnSliders();
+  renderTryOnStage();
+  bindTryOnDropZones();
+
+  els.tryonRenderBtn.addEventListener('click', () => {
+    renderTryOnWithGemini();
+  });
 }
 
 function initAccountSection() {
@@ -571,9 +889,15 @@ function initAccountSection() {
       currentUser = null;
       personImages = [];
       itemImages = [];
+      selectedPerson = null;
+      selectedItems = [];
+      tryOnResultUrl = '';
+      isRenderingTryOn = false;
       updateAccountUI(null);
       renderPersonGallery();
       renderItemGallery();
+      renderTryOnSliders();
+      renderTryOnStage();
       els.inputShopName.value = '';
       els.inputAddress.value = '';
       showToast('Signed out successfully', 'success');
@@ -648,6 +972,7 @@ function init() {
   initTabs();
   initPersonSection();
   initItemSection();
+  initTryOnSection();
   initAccountSection();
   initAuth();
 }
