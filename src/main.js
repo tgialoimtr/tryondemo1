@@ -788,7 +788,7 @@ function bindTryOnDropZones() {
   });
 }
 
-async function toBase64ImageString(imageUrl) {
+async function toInlineImageData(imageUrl) {
   const response = await fetch(imageUrl);
   if (!response.ok) {
     throw new Error(`Failed to fetch image for rendering: ${response.status}`);
@@ -798,7 +798,16 @@ async function toBase64ImageString(imageUrl) {
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => resolve(String(reader.result).replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, ''));
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
+      if (!match) {
+        reject(new Error('Fetched file is not a supported image'));
+        return;
+      }
+
+      resolve({ mimeType: match[1], data: match[2] });
+    };
     reader.onerror = () => reject(new Error('Failed to read image as base64'));
     reader.readAsDataURL(blob);
   });
@@ -824,26 +833,27 @@ async function renderTryOnWithGemini() {
       showToast('Gemini API key not configured. Demo preview loaded instead.', 'info');
     } else {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-image:generateContent?key=${apiKey}`;
+      const imageParts = await Promise.all([
+        toInlineImageData(selectedPerson.image_url),
+        ...selectedItems.map((item) => toInlineImageData(item.image_url)),
+      ]);
       const body = {
         contents: [{
           role: 'user',
           parts: [
             { text: prompt },
-            {
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: await toBase64ImageString(selectedPerson.image_url),
-              },
-            },
+            { text: 'Person reference image:' },
+            { inlineData: imageParts[0] },
+            ...selectedItems.flatMap((item, index) => [
+              { text: `Selected clothing item ${index + 1} (item ${item.id || 'reference'}):` },
+              { inlineData: imageParts[index + 1] },
+            ]),
           ],
         }],
         generationConfig: {
           responseModalities: ['TEXT', 'IMAGE'],
         },
       };
-
-      console.log('[GEMINI DEBUG] request endpoint:', endpoint);
-      console.log('[GEMINI DEBUG] request payload:', JSON.stringify(body, null, 2));
 
       const response = await fetch(endpoint, {
         method: 'POST',
