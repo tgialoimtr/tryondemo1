@@ -6,7 +6,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ── Auth ──────────────────────────────────────────────
 // Use a fixed redirect URL so Google always sends the user back
 // to the correct host (Tailscale HTTPS) regardless of which device triggered login.
-const APP_URL = import.meta.env.APP_URL || 'https://tryondemo1-ckak.vercel.app';
+const APP_URL =  window.location.origin;
 
 export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
